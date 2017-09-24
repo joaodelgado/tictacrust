@@ -76,7 +76,10 @@ impl Board {
         let index = match input.trim().parse::<usize>() {
             Ok(n) => n - 1,
             Err(_) => {
-                println!("Your move must be a valid number between 1 and 9.");
+                println!(
+                    "Your move must be a valid number between 1 and 9. Received: '{}'",
+                    input.trim()
+                );
                 return None;
             }
         };
