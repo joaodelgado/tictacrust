@@ -1,6 +1,7 @@
 use std::io;
 use std::io::Write;
-use std::fmt::{Display, Formatter, Error};
+use std::fmt;
+use errors::TicTacError;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Player {
@@ -8,18 +9,27 @@ pub enum Player {
     O,
 }
 
-pub struct Board {
-    cells: [Cell; 3 * 3],
-    current_player: Player,
+impl Player {
+    pub fn swap(&self) -> Player {
+        match *self {
+            Player::X => Player::O,
+            Player::O => Player::X,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
-struct Cell {
-    owner: Option<Player>,
+pub struct Cell {
+    pub owner: Option<Player>,
 }
 
-impl Display for Player {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+pub struct Board {
+    pub cells: [Cell; 3 * 3],
+    pub current_player: Player,
+}
+
+impl fmt::Display for Player {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match *self {
             Player::X => write!(f, "X"),
             Player::O => write!(f, "O"),
@@ -27,8 +37,8 @@ impl Display for Player {
     }
 }
 
-impl Display for Cell {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+impl fmt::Display for Cell {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self.owner {
             Some(player) => write!(f, "{:?}", player),
             None => write!(f, " "),
@@ -37,10 +47,10 @@ impl Display for Cell {
 }
 
 impl Board {
-    pub fn new() -> Board {
+    pub fn new(player: Player) -> Board {
         Board {
             cells: [Cell { owner: None }; 3 * 3],
-            current_player: Player::X,
+            current_player: player,
         }
     }
 
@@ -56,20 +66,18 @@ impl Board {
             }
         }
 
-        let play = match self.read_move(input) {
+        let position = match self.read_move(input) {
             Some(play) => play,
             None => return,
         };
 
-        match self.cells[play].owner {
-            None => self.cells[play].owner = Some(self.current_player),
-            Some(_) => {
+        match self.play(position) {
+            Err(_) => {
                 println!("Cell already occupied!");
                 return;
             }
+            Ok(_) => {}
         }
-
-        self.swap_player()
     }
 
     fn read_move(&self, input: String) -> Option<usize> {
@@ -92,10 +100,14 @@ impl Board {
         Some(index)
     }
 
-    fn swap_player(&mut self) {
-        match self.current_player {
-            Player::X => self.current_player = Player::O,
-            Player::O => self.current_player = Player::X,
+    pub fn play(&mut self, play: usize) -> Result<(), TicTacError> {
+        match self.cells[play].owner {
+            None => {
+                self.cells[play].owner = Some(self.current_player);
+                self.current_player = self.current_player.swap();
+                Ok(())
+            }
+            Some(owner) => Err(TicTacError::CellAlreadyOccupied(play, owner)),
         }
     }
 
@@ -141,8 +153,8 @@ impl Board {
     }
 }
 
-impl Display for Board {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+impl fmt::Display for Board {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(
             f,
             " {} | {} | {}
