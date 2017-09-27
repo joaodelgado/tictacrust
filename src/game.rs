@@ -18,7 +18,7 @@ impl Player {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Cell {
     pub owner: Option<Player>,
 }
@@ -26,6 +26,7 @@ pub struct Cell {
 pub struct Board {
     pub cells: [Cell; 3 * 3],
     pub current_player: Player,
+    last_play: usize,
 }
 
 impl fmt::Display for Player {
@@ -51,6 +52,7 @@ impl Board {
         Board {
             cells: [Cell { owner: None }; 3 * 3],
             current_player: player,
+            last_play: 0,
         }
     }
 
@@ -105,6 +107,7 @@ impl Board {
             None => {
                 self.cells[play].owner = Some(self.current_player);
                 self.current_player = self.current_player.swap();
+                self.last_play = play;
                 Ok(())
             }
             Some(owner) => Err(TicTacError::CellAlreadyOccupied(play, owner)),
@@ -151,27 +154,38 @@ impl Board {
             result => return result,
         }
     }
-}
 
-impl fmt::Display for Board {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(
-            f,
+    fn format_cell(&self, i: usize) -> String {
+        let c = match i {
+            i if i == self.last_play => self.cells[i].to_string(),
+            _ => self.cells[i].to_string().to_lowercase(),
+        };
+        format!("{}", c)
+    }
+
+    fn format_board(&self) -> String {
+        format!(
             " {} | {} | {}
 ---+---+---
  {} | {} | {}
 ---+---+---
  {} | {} | {} ",
-            self.cells[6],
-            self.cells[7],
-            self.cells[8],
-            self.cells[3],
-            self.cells[4],
-            self.cells[5],
-            self.cells[0],
-            self.cells[1],
-            self.cells[2]
+            self.format_cell(6),
+            self.format_cell(7),
+            self.format_cell(8),
+            self.format_cell(3),
+            self.format_cell(4),
+            self.format_cell(5),
+            self.format_cell(0),
+            self.format_cell(1),
+            self.format_cell(2)
         )
+    }
+}
+
+impl fmt::Display for Board {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "{}", self.format_board())
     }
 }
 
@@ -220,32 +234,32 @@ mod tests {
                 e, e, e,
                 e, e, e,
                 e, e, e
-        ], current_player: Player::X};
+        ], current_player: Player::X, last_play: 0};
         let no_winner = Board { cells: [
                 x, x, e,
                 e, o, e,
                 e, e, o
-        ], current_player: Player::X};
+        ], ..empty};
         let row_x = Board { cells: [
                 x, x, x,
                 e, o, e,
                 e, e, o
-        ], current_player: Player::X};
+        ], ..empty};
         let column_o = Board { cells: [
                 x, o, e,
                 x, o, o,
                 o, o, x
-        ], current_player: Player::X};
+        ], ..empty};
         let positive_diagonal_x = Board { cells: [
                 e, e, x,
                 o, x, o,
                 x, o, x
-        ], current_player: Player::X};
+        ], ..empty};
         let negative_diagonal_o = Board { cells: [
                 o, o, e,
                 x, o, o,
                 x, e, o
-        ], current_player: Player::X};
+        ], ..empty};
 
         assert_eq!(empty.winner(), None);
         assert_eq!(no_winner.winner(), None);
@@ -266,26 +280,54 @@ mod tests {
                 e, e, e,
                 e, e, e,
                 e, e, e
-        ], current_player: Player::X};
+        ], current_player: Player::X, last_play: 0};
         let no_winner = Board { cells: [
                 x, x, e,
                 e, o, e,
                 e, e, o
-        ], current_player: Player::X};
+        ], ..empty};
         let winner = Board { cells: [
                 x, x, x,
                 e, o, e,
                 e, e, o
-        ], current_player: Player::X};
+        ], ..empty};
         let no_winner_full = Board { cells: [
                 x, o, x,
                 o, o, x,
                 x, x, o
-        ], current_player: Player::X};
+        ], ..empty};
 
         assert_eq!(empty.is_over(), false);
         assert_eq!(no_winner.is_over(), false);
         assert_eq!(winner.is_over(), true);
         assert_eq!(no_winner_full.is_over(), true);
+    }
+
+    #[test]
+    fn test_play() {
+        let x = Cell { owner: Some(Player::X) };
+        let o = Cell { owner: Some(Player::O) };
+        let e = Cell { owner: None };
+
+        let mut board = Board {
+            cells: [e, e, e, e, e, e, e, e, e],
+            current_player: Player::X,
+            last_play: 0,
+        };
+
+        assert!(board.play(2).is_ok());
+        assert_eq!(x, board.cells[2]);
+        assert_eq!(Player::O, board.current_player);
+        assert_eq!(2, board.last_play);
+
+        assert!(board.play(3).is_ok());
+        assert_eq!(o, board.cells[3]);
+        assert_eq!(Player::X, board.current_player);
+        assert_eq!(3, board.last_play);
+
+        assert!(board.play(2).is_err());
+        assert_eq!(Player::X, board.current_player);
+        assert_eq!(3, board.last_play);
+
     }
 }
