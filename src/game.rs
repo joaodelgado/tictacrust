@@ -154,38 +154,38 @@ impl Board {
             result => return result,
         }
     }
+}
 
-    fn format_cell(&self, i: usize) -> String {
-        let c = match i {
-            i if i == self.last_play => self.cells[i].to_string(),
-            _ => self.cells[i].to_string().to_lowercase(),
+impl fmt::Display for Board {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+
+        let format_cell = |i: usize| {
+            format!(
+                "{}",
+                match i {
+                    i if i == self.last_play => self.cells[i].to_string(),
+                    _ => self.cells[i].to_string().to_lowercase(),
+                }
+            )
         };
-        format!("{}", c)
-    }
 
-    fn format_board(&self) -> String {
-        format!(
+        write!(
+            f,
             " {} | {} | {}
 ---+---+---
  {} | {} | {}
 ---+---+---
  {} | {} | {} ",
-            self.format_cell(6),
-            self.format_cell(7),
-            self.format_cell(8),
-            self.format_cell(3),
-            self.format_cell(4),
-            self.format_cell(5),
-            self.format_cell(0),
-            self.format_cell(1),
-            self.format_cell(2)
+            format_cell(6),
+            format_cell(7),
+            format_cell(8),
+            format_cell(3),
+            format_cell(4),
+            format_cell(5),
+            format_cell(0),
+            format_cell(1),
+            format_cell(2)
         )
-    }
-}
-
-impl fmt::Display for Board {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f, "{}", self.format_board())
     }
 }
 
